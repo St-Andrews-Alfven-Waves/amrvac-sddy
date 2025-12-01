@@ -424,7 +424,15 @@ contains
     integer :: idims,idir,ix^D,ix^L,ixC^L,ixA^L,ixB^L
 
     !> Saturation flux parameter.
-    double precision :: phi = 0.3d0
+    double precision :: phi = 1.1d0
+
+    !> Collisionless flux
+    double precision :: r_coll = 5.0d0
+    double precision :: trans(ixI^S)
+    double precision :: q_p(ixI^S,1:ndim)
+    
+    trans = 0.0d0
+    q_p = 0.0d0
 
     ix^L=ixO^L^LADD1;
 
@@ -929,6 +937,16 @@ contains
             end if
          {end do\}
         end if
+
+        r_coll = 5.0d0
+        trans = 1.0d0 / ( 1.0d0 + ((0.5d0*(x(ixA^S,1) + x(ixB^S,1)) - 1.0d0)**4) / ((r_coll - 1.0d0)**4) )
+        ! 3/2*pth*v => 1.5*rho*Te*m/rho => 1.5*Te*m
+        q_p(ixA^S,idims) = 1.5*0.5d0*(Te(ixA^S)+Te(ixB^S))*0.5d0*(w(ixA^S, iw_mom(idims))+w(ixB^S, iw_mom(idims)))
+
+        {do ix^DB=ixAmin^DB,ixAmax^DB\}
+          qvec(ix^D,idims) = trans(ix^D)*qvec(ix^D,idims) + (1.0d0 - trans(ix^D))*q_p(ix^D,idims)
+        {end do\}
+
       end do
     end if
   end subroutine set_source_tc_mhd
