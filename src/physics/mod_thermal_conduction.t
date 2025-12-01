@@ -423,6 +423,9 @@ contains
     double precision :: minq,maxq,qd(ixI^S,2**(ndim-1)), blocal(ndim)
     integer :: idims,idir,ix^D,ix^L,ixC^L,ixA^L,ixB^L
 
+    !> Saturation flux parameter.
+    double precision :: phi = 0.3d0
+
     ix^L=ixO^L^LADD1;
 
     ! T gradient at cell faces
@@ -646,7 +649,7 @@ contains
           ! averaged b at face centers
           Bcf(ixA^S,idims)=Bcf(ixA^S,idims)*0.5d0**(ndim-1)
           ixB^L=ixA^L+kr(idims,^D);
-          qdd(ixA^S)=2.75d0*(rho(ixA^S)+rho(ixB^S))*dsqrt(0.5d0*(Te(ixA^S)+Te(ixB^S)))**3*dabs(Bcf(ixA^S,idims))
+          qdd(ixA^S)=5.0d0*phi*0.5d0*(rho(ixA^S)+rho(ixB^S))*dsqrt(0.5d0*(Te(ixA^S)+Te(ixB^S)))**3*dabs(Bcf(ixA^S,idims))
          {do ix^DB=ixAmin^DB,ixAmax^DB\}
             if(dabs(qvec(ix^D,idims))>qdd(ix^D)) then
               qvec(ix^D,idims)=sign(1.d0,qvec(ix^D,idims))*qdd(ix^D)
@@ -919,7 +922,7 @@ contains
           ! consider saturation (Cowie and Mckee 1977 ApJ, 211, 135)
           ! unsigned saturated TC flux = 5 phi rho c**3, c=sqrt(p/rho) is isothermal sound speed, phi=1.1
           ixB^L=ixA^L+kr(idims,^D);
-          qdd(ixA^S)=2.75d0*(rho(ixA^S)+rho(ixB^S))*dsqrt(0.5d0*(Te(ixA^S)+Te(ixB^S)))**3*dabs(Bnorm(ixA^S))
+          qdd(ixA^S)=5.0d0*phi*0.5d0*(rho(ixA^S)+rho(ixB^S))*dsqrt(0.5d0*(Te(ixA^S)+Te(ixB^S)))**3*dabs(Bcf(ixA^S,idims))
          {do ix^DB=ixAmin^DB,ixAmax^DB\}
             if(dabs(qvec(ix^D,idims))>qdd(ix^D)) then
               qvec(ix^D,idims)=sign(1.d0,qvec(ix^D,idims))*qdd(ix^D)
@@ -937,6 +940,7 @@ contains
     double precision :: lf(ixI^S)
     integer, intent(in)  :: tc_slope_limiter
 
+    double precision, parameter :: qsmall=1.d-12
     double precision :: signf(ixI^S)
     integer :: ixB^L
 
@@ -961,6 +965,9 @@ contains
        lf(ixO^S)=signf(ixO^S)* &
             max(zero,min(two*dabs(f(ixO^S)),two*signf(ixO^S)*f(ixB^S),&
             (two*f(ixB^S)*signf(ixO^S)+dabs(f(ixO^S)))*third))
+     case(5)
+       ! van Leer limiter
+       lf(ixO^S)=two*max(f(ixB^S)*f(ixO^S),zero)/(f(ixO^S)+f(ixB^S)+qsmall)
      case default
        call mpistop("Unknown slope limiter for thermal conduction")
     end select
