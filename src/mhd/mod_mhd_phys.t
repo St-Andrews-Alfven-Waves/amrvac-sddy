@@ -845,6 +845,7 @@ contains
       end if
       call set_error_handling_to_head(mhd_tc_handle_small_e)
       tc_fl%get_rho => mhd_get_rho
+      tc_fl%get_vel => mhd_get_v
       tc_fl%e_ = e_
       tc_fl%Tcoff_ = Tcoff_
     end if

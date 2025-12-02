@@ -61,6 +61,16 @@ module mod_thermal_conduction
     end subroutine get_var_subr
   end interface
 
+  abstract interface
+    subroutine get_vec_subr(w,x,ixI^L,ixO^L,res)
+      use mod_global_parameters
+      integer, intent(in)          :: ixI^L, ixO^L
+      double precision, intent(in) :: w(ixI^S,nw)
+      double precision, intent(in) :: x(ixI^S,1:ndim)
+      double precision, intent(out):: res(ixI^S,1:ndir)
+    end subroutine get_vec_subr
+  end interface
+
   type tc_fluid
 
     ! BEGIN the following are read from param file or set in tc_read_hd_params or tc_read_mhd_params
@@ -89,6 +99,7 @@ module mod_thermal_conduction
     !> Consider thermal conduction saturation effect (.true.) or not (.false.)
     logical :: tc_saturate=.false.
     ! END the following are read from param file or set in tc_read_hd_params or tc_read_mhd_params
+    procedure (get_vec_subr), pointer, nopass :: get_vel => null()
     procedure (get_var_subr), pointer, nopass :: get_rho => null()
     procedure (get_var_subr), pointer, nopass :: get_rho_equi => null()
     procedure(get_var_subr), pointer,nopass :: get_temperature_from_eint => null()
@@ -340,7 +351,7 @@ contains
 
     !! qd store the heat conduction energy changing rate
     double precision :: qd(ixO^S)
-    double precision :: rho(ixI^S),Te(ixI^S)
+    double precision :: rho(ixI^S),Te(ixI^S),vel(ixI^S,1:ndir)
     double precision :: qvec(ixI^S,1:ndim)
     double precision :: fluxall(ixI^S,1,1:ndim)
     double precision :: alpha,dxinv(ndim)
@@ -358,12 +369,13 @@ contains
 
     call fl%get_temperature_from_eint(w, x, ixI^L, ixI^L, Te)  !calculate Te in whole domain (+ghosts)
     call fl%get_rho(w, x, ixI^L, ixI^L, rho)  !calculate rho in whole domain (+ghosts)
-    call set_source_tc_mhd(ixI^L,ixO^L,w,x,fl,qvec,rho,Te,alpha)
+    call fl%get_vel(w, x, ixI^L, ixI^L, vel)  !calculate velocity in whole domain (+ghosts)
+    call set_source_tc_mhd(ixI^L,ixO^L,w,x,fl,qvec,rho,Te,vel,alpha)
     if(fl%has_equi) then
       allocate(qvec_equi(ixI^S,1:ndim))
       call fl%get_temperature_equi(w, x, ixI^L, ixI^L, Te)  !calculate Te in whole domain (+ghosts)
       call fl%get_rho_equi(w, x, ixI^L, ixI^L, rho)  !calculate rho in whole domain (+ghosts)
-      call set_source_tc_mhd(ixI^L,ixO^L,w,x,fl,qvec_equi,rho,Te,alpha)
+      call set_source_tc_mhd(ixI^L,ixO^L,w,x,fl,qvec_equi,rho,Te,vel,alpha)
       do idims=1,ndim
         ixAmax^D=ixOmax^D; ixAmin^D=ixOmin^D-kr(idims,^D);
         qvec(ixA^S,idims)=qvec(ixA^S,idims)-qvec_equi(ixA^S,idims)
@@ -407,13 +419,13 @@ contains
     wres(ixO^S,fl%e_)=qd(ixO^S)
   end subroutine sts_set_source_tc_mhd
 
-  subroutine set_source_tc_mhd(ixI^L,ixO^L,w,x,fl,qvec,rho,Te,alpha)
+  subroutine set_source_tc_mhd(ixI^L,ixO^L,w,x,fl,qvec,rho,Te,vel,alpha)
     use mod_global_parameters
     integer, intent(in) :: ixI^L, ixO^L
     double precision, intent(in) ::  x(ixI^S,1:ndim)
     double precision, intent(in) ::  w(ixI^S,1:nw)
     type(tc_fluid), intent(in) :: fl
-    double precision, intent(in) :: rho(ixI^S),Te(ixI^S)
+    double precision, intent(in) :: rho(ixI^S),Te(ixI^S),vel(ixI^S,1:ndim)
     double precision, intent(in) :: alpha
     double precision, intent(out) :: qvec(ixI^S,1:ndim)
 
@@ -938,14 +950,25 @@ contains
          {end do\}
         end if
 
-        r_coll = 5.0d0
-        trans = 1.0d0 / ( 1.0d0 + ((0.5d0*(x(ixA^S,1) + x(ixB^S,1)) - 1.0d0)**4) / ((r_coll - 1.0d0)**4) )
-        ! 3/2*pth*v => 1.5*rho*Te*m/rho => 1.5*Te*m
-        q_p(ixA^S,idims) = 1.5*0.5d0*(Te(ixA^S)+Te(ixB^S))*0.5d0*(w(ixA^S, iw_mom(idims))+w(ixB^S, iw_mom(idims)))
+        ! r_coll = 10.0d0
+        ! trans(ixA^S) = 1.0d0 / ( 1.0d0 + ((0.5d0*(x(ixA^S,1) + x(ixB^S,1)) - 1.0d0)**4) / ((r_coll - 1.0d0)**4) )
+        ! ! 3/2*pth*v => 1.5*rho*Te*m/rho => 1.5*Te*m
+        ! q_p(ixA^S,idims) = 1.5*0.5d0*(rho(ixA^S)+rho(ixB^S))*0.5d0*(Te(ixA^S)+Te(ixB^S))*0.5d0*(vel(ixA^S, iw_mom(idims))+vel(ixB^S, iw_mom(idims)))
 
-        {do ix^DB=ixAmin^DB,ixAmax^DB\}
-          qvec(ix^D,idims) = trans(ix^D)*qvec(ix^D,idims) + (1.0d0 - trans(ix^D))*q_p(ix^D,idims)
-        {end do\}
+        ! {do ix^DB=ixAmin^DB,ixAmax^DB\}
+        !   qvec(ix^D,idims) = trans(ix^D)*qvec(ix^D,idims) + (1.0d0 - trans(ix^D))*q_p(ix^D,idims)
+        ! {end do\}
+        
+        ! if (any(isnan(qvec))) then
+        !   ! {do ix^DB=ixAmin^DB,ixAmax^DB\}
+        !   do ix3=1,20
+        !   do ix2=1,20
+        !   do ix1=1,20
+        !     print*, idims, ix^D, x(ix^D,1), x(ix^D,2), x(ix^D,3), rho(ix^D)*unit_density, &
+        !       Te(ix^D)*unit_temperature, vel(ix^D, iw_mom(idims))*unit_velocity, q_p(ix^D,idims), &
+        !       qvec(ix^D,idims), trans(ix^D)
+        !   {end do\}
+        ! end if
 
       end do
     end if
