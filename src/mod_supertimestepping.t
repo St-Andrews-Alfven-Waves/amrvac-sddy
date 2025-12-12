@@ -374,7 +374,7 @@ contains
       call MPI_ALLREDUCE(dtmin_mype,dtnew,1,MPI_DOUBLE_PRECISION,MPI_MIN,icomm,ierrmpi)
       temp%s = sts_get_ncycles(my_dt,dtnew,dt_modified2)
 
-      !print*, "NCYCLES ", temp%s, dt_modified2, my_dt, dtnew
+      ! if (mype == 1) print*, "NCYCLES ", temp%s, dt_modified2, my_dt, dtnew
       temp%dt_expl = dtnew
  
       ! Note that as for some term it may happen that the dt is modified: it may be reduced if the

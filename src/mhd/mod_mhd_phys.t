@@ -4758,6 +4758,7 @@ contains
     double precision, dimension(ixI^S) :: R,Te,rho_loc,pth_loc
     double precision :: sigma_T5,sigma_T7,f_sat,sigmaT5_bgradT,tau,Bdir(ndim),bunitvec(ndim)
     integer :: ix^D
+    double precision :: tau_dt_ratio = 4.0d0
 
     call mhd_get_rho(wCT,x,ixI^L,ixI^L,rho_loc)
     call mhd_get_pthermal(wCT,x,ixI^L,ixI^L,pth_loc)
@@ -4783,11 +4784,13 @@ contains
       sigmaT5_bgradT=sigma_T5*(8.d0*(Te(ix1+1)-Te(ix1-1))-Te(ix1+2)+Te(ix1-2))/12.d0/block%ds(ix^D,1)
       if(mhd_htc_sat) then
         f_sat=one/(one+abs(sigmaT5_bgradT))/(1.5d0*rho_loc(ix^D)*(mhd_gamma*Te(ix^D))**1.5d0)
-        tau=max(4.d0*dt, f_sat*sigma_T7*courantpar**2/(pth_loc(ix^D)*inv_gamma_1*cmax_global**2))
+        ! tau=max(4.d0*dt, f_sat*sigma_T7*courantpar**2/(pth_loc(ix^D)*inv_gamma_1*cmax_global**2))
+        tau=tau_dt_ratio*dt
         w(ix^D,q_)=w(ix^D,q_)-qdt*(f_sat*sigmaT5_bgradT+wCT(ix^D,q_))/tau
       else
-        w(ix^D,q_)=w(ix^D,q_)-qdt*(sigmaT5_bgradT+wCT(ix^D,q_))/&
-         max(4.d0*dt, sigma_T7*courantpar**2/(pth_loc(ix^D)*inv_gamma_1*cmax_global**2))
+        ! tau=max(4.d0*dt, sigma_T7*courantpar**2/(pth_loc(ix^D)*inv_gamma_1*cmax_global**2))
+        tau=tau_dt_ratio*dt
+        w(ix^D,q_)=w(ix^D,q_)-qdt*(sigmaT5_bgradT+wCT(ix^D,q_))/tau
       end if
     end do
     }
@@ -4826,11 +4829,13 @@ contains
           +bunitvec(2)*((8.d0*(Te(ix1,ix2+1)-Te(ix1,ix2-1))-Te(ix1,ix2+2)+Te(ix1,ix2-2))/12.d0)/block%ds(ix^D,2))
         if(mhd_htc_sat) then
           f_sat=one/(one+abs(sigmaT5_bgradT))/(1.5d0*rho_loc(ix^D)*(mhd_gamma*Te(ix^D))**1.5d0)
-          tau=max(4.d0*dt, f_sat*sigma_T7*courantpar**2/(pth_loc(ix^D)*inv_gamma_1*cmax_global**2))
+          tau=tau_dt_ratio*dt
+          ! tau=max(4.d0*dt, f_sat*sigma_T7*courantpar**2/(pth_loc(ix^D)*inv_gamma_1*cmax_global**2))
           w(ix^D,q_)=w(ix^D,q_)-qdt*(f_sat*sigmaT5_bgradT+wCT(ix^D,q_))/tau
         else
-          w(ix^D,q_)=w(ix^D,q_)-qdt*(sigmaT5_bgradT+wCT(ix^D,q_))/&
-           max(4.d0*dt, sigma_T7*courantpar**2/(pth_loc(ix^D)*inv_gamma_1*cmax_global**2))
+          ! tau=max(4.d0*dt, sigma_T7*courantpar**2/(pth_loc(ix^D)*inv_gamma_1*cmax_global**2))
+          tau=tau_dt_ratio*dt
+          w(ix^D,q_)=w(ix^D,q_)-qdt*(sigmaT5_bgradT+wCT(ix^D,q_))/tau
         end if
       end do
     end do
@@ -4877,11 +4882,13 @@ contains
             +bunitvec(3)*((8.d0*(Te(ix1,ix2,ix3+1)-Te(ix1,ix2,ix3-1))-Te(ix1,ix2,ix3+2)+Te(ix1,ix2,ix3-2))/12.d0)/block%ds(ix^D,3))
           if(mhd_htc_sat) then
             f_sat=one/(one+abs(sigmaT5_bgradT))/(1.5d0*rho_loc(ix^D)*(mhd_gamma*Te(ix^D))**1.5d0)
-            tau=max(4.d0*dt, f_sat*sigma_T7*courantpar**2/(pth_loc(ix^D)*inv_gamma_1*cmax_global**2))
+            ! tau=max(4.d0*dt, f_sat*sigma_T7*courantpar**2/(pth_loc(ix^D)*inv_gamma_1*cmax_global**2))
+            tau=tau_dt_ratio*dt
             w(ix^D,q_)=w(ix^D,q_)-qdt*(f_sat*sigmaT5_bgradT+wCT(ix^D,q_))/tau
           else
-            w(ix^D,q_)=w(ix^D,q_)-qdt*(sigmaT5_bgradT+wCT(ix^D,q_))/&
-             max(4.d0*dt, sigma_T7*courantpar**2/(pth_loc(ix^D)*inv_gamma_1*cmax_global**2))
+            ! tau=max(4.d0*dt, sigma_T7*courantpar**2/(pth_loc(ix^D)*inv_gamma_1*cmax_global**2))
+            tau=tau_dt_ratio*dt
+            w(ix^D,q_)=w(ix^D,q_)-qdt*(sigmaT5_bgradT+wCT(ix^D,q_))/tau
           end if
         end do
       end do
