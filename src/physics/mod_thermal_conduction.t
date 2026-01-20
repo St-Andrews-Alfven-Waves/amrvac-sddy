@@ -426,13 +426,13 @@ contains
     wres(ixO^S,fl%e_)=qd(ixO^S)
   end subroutine sts_set_source_tc_mhd
 
-  subroutine set_source_tc_mhd(ixI^L,ixO^L,w,x,fl,qvec,rho,Te,vel,alpha)
+  subroutine set_source_tc_mhd(ixI^L,ixO^L,w,x,fl,qvec,rho,Te,alpha)
     use mod_global_parameters
     integer, intent(in) :: ixI^L, ixO^L
     double precision, intent(in) ::  x(ixI^S,1:ndim)
     double precision, intent(in) ::  w(ixI^S,1:nw)
     type(tc_fluid), intent(in) :: fl
-    double precision, intent(in) :: rho(ixI^S),Te(ixI^S),vel(ixI^S,1:ndim)
+    double precision, intent(in) :: rho(ixI^S),Te(ixI^S)
     double precision, intent(in) :: alpha
     double precision, intent(out) :: qvec(ixI^S,1:ndim)
 
